@@ -1,0 +1,27 @@
+# IDE
+.idea/
+.vscode/
+
+# Build and compiled files
+dist/
+*.exe
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+
+# Data directories
+output/
+input/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# System files
+.DS_Store
+Thumbs.db
