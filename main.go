@@ -13,9 +13,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/chai2010/webp"
 	"github.com/disintegration/imaging"
 	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
 )
 
 type TargetSize struct {
@@ -35,15 +37,28 @@ var (
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 
+	fd := os.Stdin.Fd()
+	interactive := isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd)
+
 	fmt.Println(bold(cyan("🚀 Optimizador de Imágenes WebP")))
 	fmt.Println("-------------------------------")
 
 	// 1. Preguntar directorios
-	fmt.Print(yellow("📁 Directorio de entrada [default: input]: "))
-	inDir, _ := reader.ReadString('\n')
-	inDir = strings.TrimSpace(inDir)
-	if inDir == "" {
-		inDir = "input"
+	var inDir string
+	for {
+		fmt.Print(yellow("📁 Directorio de entrada [default: input]: "))
+		inDir, _ = reader.ReadString('\n')
+		inDir = strings.TrimSpace(inDir)
+		if inDir == "" {
+			inDir = "input"
+		}
+
+		info, err := os.Stat(inDir)
+		if err != nil || !info.IsDir() {
+			fmt.Printf("%s La carpeta '%s' no existe o no es un directorio.\n", red("❌"), inDir)
+			continue
+		}
+		break
 	}
 
 	fmt.Print(yellow("📁 Directorio de salida [default: output]: "))
@@ -53,8 +68,6 @@ func main() {
 		outDir = "output"
 	}
 
-	// 2. Mostrar menú de tamaños
-	fmt.Println(bold(cyan("\n📐 Selecciona los tamaños deseados (separados por coma, ej: 1,2,3):")))
 	options := []TargetSize{
 		{Name: "240px (Watch/Legacy)", Width: 240, IsPct: false},
 		{Name: "280px (Galaxy Fold cerrado)", Width: 280, IsPct: false},
@@ -66,100 +79,10 @@ func main() {
 		{Name: "2160px (4K)", Width: 2160, IsPct: false},
 	}
 
-	for i, opt := range options {
-		fmt.Printf("%s%d) %s\n", cyan(""), i+1, opt.Name)
-	}
-	fmt.Println(cyan("7) Personalizado (tamaño en px)"))
-
-	fmt.Print(yellow("\nOpción(es): "))
-	choicesStr, _ := reader.ReadString('\n')
-	choicesStr = strings.TrimSpace(choicesStr)
-
-	selectedChoices := strings.Split(choicesStr, ",")
-	var targets []TargetSize
-
-	for _, c := range selectedChoices {
-		idx, err := strconv.Atoi(strings.TrimSpace(c))
-		if err != nil || idx < 1 || idx > 7 {
-			continue
-		}
-		if idx == 7 {
-			fmt.Print(yellow("Introduce los tamaños en px (ej: 800, 1200): "))
-			pxStr, _ := reader.ReadString('\n')
-			pxList := strings.Split(strings.TrimSpace(pxStr), ",")
-			for _, p := range pxList {
-				width, _ := strconv.Atoi(strings.TrimSpace(p))
-				if width > 0 {
-					targets = append(targets, TargetSize{Name: fmt.Sprintf("%dpx", width), Width: width, IsPct: false})
-				}
-			}
-		} else {
-			targets = append(targets, options[idx-1])
-		}
-	}
-
-	if len(targets) == 0 {
-		log.Fatal("No seleccionaste ningún tamaño válido.")
-	}
-
-	// 3. Menú de calidad
-	fmt.Println(bold(cyan("\n💎 Selecciona la calidad de salida:")))
-	fmt.Println(cyan("1) Sin pérdida / Pérdida mínima (Lossless)"))
-	fmt.Println(cyan("2) Calidad Máxima (95%)"))
-	fmt.Println(cyan("3) Calidad Alta (80%) [Predeterminado]"))
-	fmt.Println(cyan("4) Calidad Media-Alta (65%)"))
-	fmt.Println(cyan("5) Calidad Media (45%)"))
-	fmt.Println(cyan("6) Calidad Baja / Menor peso (25%)"))
-
-	fmt.Print(yellow("\nOpción (1-6): "))
-	qStr, _ := reader.ReadString('\n')
-	qStr = strings.TrimSpace(qStr)
-
-	qualityLevel, _ := strconv.Atoi(qStr)
-	if qualityLevel < 1 || qualityLevel > 6 {
-		qualityLevel = 3 // Default
-	}
-
-	var lossless bool
-	var quality float32
-
-	switch qualityLevel {
-	case 1:
-		lossless = true
-		quality = 100
-	case 2:
-		lossless = false
-		quality = 95
-	case 3:
-		lossless = false
-		quality = 80
-	case 4:
-		lossless = false
-		quality = 65
-	case 5:
-		lossless = false
-		quality = 45
-	case 6:
-		lossless = false
-		quality = 25
-	default:
-		lossless = false
-		quality = 80
-	}
-
-	// 4. Menú de formato de salida
-	fmt.Println(bold(cyan("\n🗂️  Selecciona el formato de salida:")))
-	fmt.Println(cyan("1) WebP [Predeterminado]"))
-	fmt.Println(cyan("2) JPEG"))
-
-	fmt.Print(yellow("\nOpción (1-2): "))
-	fStr, _ := reader.ReadString('\n')
-	fStr = strings.TrimSpace(fStr)
-
-	outputFormat := "webp"
-	if fStr == "2" {
-		outputFormat = "jpeg"
-	}
+	// 2. Selección de tamaños, calidad y formato
+	targets := selectSizes(reader, options, interactive)
+	lossless, quality := selectQuality(reader, interactive)
+	outputFormat := selectFormat(reader, interactive)
 
 	if outputFormat == "jpeg" && lossless {
 		fmt.Println(yellow("ℹ️  JPEG no admite modo lossless; se usará calidad 100."))
@@ -246,6 +169,175 @@ func main() {
 		}
 	}
 	fmt.Println(bold(green("\n✨ ¡Proceso finalizado!")))
+}
+
+// selectSizes pide los tamaños de salida. En modo interactivo usa checkboxes
+// (multi-selección); si no hay terminal interactiva, cae al menú numérico.
+func selectSizes(reader *bufio.Reader, options []TargetSize, interactive bool) []TargetSize {
+	var targets []TargetSize
+
+	if interactive {
+		labels := make([]string, 0, len(options)+1)
+		for _, o := range options {
+			labels = append(labels, o.Name)
+		}
+		customIdx := len(labels)
+		labels = append(labels, "Personalizado (tamaño en px)")
+
+		var picked []int
+		prompt := &survey.MultiSelect{
+			Message: "Selecciona los tamaños deseados:",
+			Options: labels,
+		}
+		if err := survey.AskOne(prompt, &picked); err != nil {
+			log.Fatalf("Selección cancelada: %v", err)
+		}
+
+		customSelected := false
+		for _, idx := range picked {
+			if idx == customIdx {
+				customSelected = true
+				continue
+			}
+			targets = append(targets, options[idx])
+		}
+
+		if customSelected {
+			var pxStr string
+			if err := survey.AskOne(&survey.Input{
+				Message: "Introduce los tamaños en px (ej: 800, 1200):",
+			}, &pxStr); err != nil {
+				log.Fatalf("Selección cancelada: %v", err)
+			}
+			targets = append(targets, parseCustomSizes(pxStr)...)
+		}
+	} else {
+		fmt.Println(bold(cyan("\n📐 Selecciona los tamaños deseados (separados por coma, ej: 1,2,3):")))
+		for i, opt := range options {
+			fmt.Printf("%s%d) %s\n", cyan(""), i+1, opt.Name)
+		}
+		customNum := len(options) + 1
+		fmt.Println(cyan(fmt.Sprintf("%d) Personalizado (tamaño en px)", customNum)))
+
+		fmt.Print(yellow("\nOpción(es): "))
+		choicesStr, _ := reader.ReadString('\n')
+		choicesStr = strings.TrimSpace(choicesStr)
+
+		for _, c := range strings.Split(choicesStr, ",") {
+			idx, err := strconv.Atoi(strings.TrimSpace(c))
+			if err != nil || idx < 1 || idx > customNum {
+				continue
+			}
+			if idx == customNum {
+				fmt.Print(yellow("Introduce los tamaños en px (ej: 800, 1200): "))
+				pxStr, _ := reader.ReadString('\n')
+				targets = append(targets, parseCustomSizes(pxStr)...)
+			} else {
+				targets = append(targets, options[idx-1])
+			}
+		}
+	}
+
+	if len(targets) == 0 {
+		log.Fatal("No seleccionaste ningún tamaño válido.")
+	}
+	return targets
+}
+
+func parseCustomSizes(pxStr string) []TargetSize {
+	var out []TargetSize
+	for _, p := range strings.Split(strings.TrimSpace(pxStr), ",") {
+		width, _ := strconv.Atoi(strings.TrimSpace(p))
+		if width > 0 {
+			out = append(out, TargetSize{Name: fmt.Sprintf("%dpx", width), Width: width, IsPct: false})
+		}
+	}
+	return out
+}
+
+// selectQuality devuelve (lossless, quality) según la opción elegida.
+func selectQuality(reader *bufio.Reader, interactive bool) (bool, float32) {
+	qualityLabels := []string{
+		"Sin pérdida / Pérdida mínima (Lossless)",
+		"Calidad Máxima (95%)",
+		"Calidad Alta (80%) [Predeterminado]",
+		"Calidad Media-Alta (65%)",
+		"Calidad Media (45%)",
+		"Calidad Baja / Menor peso (25%)",
+	}
+
+	qualityLevel := 3
+	if interactive {
+		idx := 2
+		prompt := &survey.Select{
+			Message: "Selecciona la calidad de salida:",
+			Options: qualityLabels,
+			Default: qualityLabels[2],
+		}
+		if err := survey.AskOne(prompt, &idx); err != nil {
+			log.Fatalf("Selección cancelada: %v", err)
+		}
+		qualityLevel = idx + 1
+	} else {
+		fmt.Println(bold(cyan("\n💎 Selecciona la calidad de salida:")))
+		for i, l := range qualityLabels {
+			fmt.Println(cyan(fmt.Sprintf("%d) %s", i+1, l)))
+		}
+		fmt.Print(yellow("\nOpción (1-6): "))
+		qStr, _ := reader.ReadString('\n')
+		qStr = strings.TrimSpace(qStr)
+		qualityLevel, _ = strconv.Atoi(qStr)
+		if qualityLevel < 1 || qualityLevel > 6 {
+			qualityLevel = 3
+		}
+	}
+
+	switch qualityLevel {
+	case 1:
+		return true, 100
+	case 2:
+		return false, 95
+	case 3:
+		return false, 80
+	case 4:
+		return false, 65
+	case 5:
+		return false, 45
+	case 6:
+		return false, 25
+	default:
+		return false, 80
+	}
+}
+
+// selectFormat devuelve "webp" o "jpeg".
+func selectFormat(reader *bufio.Reader, interactive bool) string {
+	if interactive {
+		idx := 0
+		prompt := &survey.Select{
+			Message: "Selecciona el formato de salida:",
+			Options: []string{"WebP", "JPEG"},
+			Default: "WebP",
+		}
+		if err := survey.AskOne(prompt, &idx); err != nil {
+			log.Fatalf("Selección cancelada: %v", err)
+		}
+		if idx == 1 {
+			return "jpeg"
+		}
+		return "webp"
+	}
+
+	fmt.Println(bold(cyan("\n🗂️  Selecciona el formato de salida:")))
+	fmt.Println(cyan("1) WebP [Predeterminado]"))
+	fmt.Println(cyan("2) JPEG"))
+	fmt.Print(yellow("\nOpción (1-2): "))
+	fStr, _ := reader.ReadString('\n')
+	fStr = strings.TrimSpace(fStr)
+	if fStr == "2" {
+		return "jpeg"
+	}
+	return "webp"
 }
 
 func saveImage(path string, img image.Image, format string, lossless bool, quality float32) error {

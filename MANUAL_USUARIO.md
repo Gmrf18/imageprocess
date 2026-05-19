@@ -11,6 +11,8 @@
 - ✅ 6 niveles de calidad configurables
 - ✅ Genera múltiples tamaños en un único paso
 - ✅ Detección automática de orientación (portrait/landscape)
+- ✅ **Selección interactiva con checkboxes y listas** (flechas + espacio + Enter), con menú numérico clásico como alternativa
+- ✅ Validación del directorio de entrada: si no existe, vuelve a preguntar
 
 ---
 
@@ -54,12 +56,20 @@ sudo apt-get install exiftool
 
 ## 📋 Flujo de preguntas interactivo
 
+> ℹ️ **Dos modos de selección**
+>
+> - **Modo interactivo** (al ejecutar en una terminal normal): los tamaños se eligen con **checkboxes** y la calidad/formato con **listas navegables**. Usa **↑/↓** para moverte, **espacio** para marcar/desmarcar y **Enter** para confirmar.
+> - **Modo clásico/numérico** (cuando la entrada viene de una tubería, script o sin terminal interactiva): se muestran los menús numerados y escribes el/los número(s), igual que antes.
+>
+> La aplicación detecta el modo automáticamente; no hay que configurar nada. Los directorios de entrada/salida siempre se piden como texto.
+
 ### 1️⃣ **Directorio de entrada** [default: `input`]
 ```
 📁 Directorio de entrada [default: input]: 
 ```
 - Presiona **Enter** para usar la carpeta por defecto `input/`
 - O escribe la ruta de otra carpeta, ej: `C:\mis_fotos` o `/home/user/pictures`
+- ⚠️ Si la carpeta indicada **no existe**, la aplicación lo avisa y vuelve a preguntar hasta que indiques una carpeta válida
 
 ### 2️⃣ **Directorio de salida** [default: `output`]
 ```
@@ -69,20 +79,37 @@ sudo apt-get install exiftool
 - O especifica dónde guardar las imágenes procesadas
 
 ### 3️⃣ **Selecciona tamaños** (múltiple opción)
-```
-📐 Selecciona los tamaños deseados (separados por coma, ej: 1,2,3):
-1) 420px (Móvil)
-2) 720px (HD)
-3) 1080px (Full HD)
-4) 1440px (2K)
-5) 2160px (4K)
-6) Personalizado (tamaño en px)
-```
 
-**Ejemplos:**
-- `1,3,5` → genera versiones de 420px, 1080px y 2160px
-- `6` → te pide ingresar tamaños a medida, ej: `600, 1200, 1600`
-- `1,2,3,4,5` → todas las opciones estándar
+Tamaños disponibles:
+
+| # | Tamaño |
+|---|--------|
+| 1 | 240px (Watch/Legacy) |
+| 2 | 280px (Galaxy Fold cerrado) |
+| 3 | 320px (Móvil S) |
+| 4 | 468px (Móvil L) |
+| 5 | 768px (Tablet) |
+| 6 | 1080px (Full HD) |
+| 7 | 1440px (2K) |
+| 8 | 2160px (4K) |
+| 9 | Personalizado (tamaño en px) |
+
+**🖱️ Modo interactivo (checkboxes):**
+```
+? Selecciona los tamaños deseados:  [usa flechas, espacio para marcar, enter para confirmar]
+  [ ] 240px (Watch/Legacy)
+  [x] 320px (Móvil S)
+  [x] 768px (Tablet)
+  [ ] Personalizado (tamaño en px)
+```
+- **↑/↓**: mover · **espacio**: marcar/desmarcar · **Enter**: confirmar
+- Marca todos los que necesites en una sola pantalla
+- Si marcas **Personalizado**, después se te pedirá: `Introduce los tamaños en px (ej: 800, 1200):`
+
+**⌨️ Modo clásico (numérico):** escribe los números separados por coma. Ejemplos:
+- `1,3,5` → genera 240px, 320px y 768px
+- `7,8` → genera 1440px (2K) y 2160px (4K)
+- `9` → te pide tamaños a medida, ej: `600, 1200, 1600`
 
 **Nota:** Si pides un tamaño mayor al original, se limitará al ancho de la imagen para evitar pixelado.
 
@@ -96,6 +123,8 @@ sudo apt-get install exiftool
 5) Calidad Media (45%)
 6) Calidad Baja / Menor peso (25%)
 ```
+
+En **modo interactivo** se muestra como una lista de una sola opción (↑/↓ + Enter), con **Calidad Alta (80%)** preseleccionada por defecto. En **modo clásico** escribes el número `1`–`6` (si lo dejas vacío o inválido, usa la opción 3).
 
 **Guía de elección:**
 | Opción | Uso recomendado | Tamaño aprox. |
@@ -113,6 +142,8 @@ sudo apt-get install exiftool
 1) WebP [Predeterminado]
 2) JPEG
 ```
+
+En **modo interactivo** es una lista de una sola opción (↑/↓ + Enter) con **WebP** por defecto. En **modo clásico** escribes `1` (WebP) o `2` (JPEG).
 
 **Diferencias:**
 | Formato | Ventajas | Desventajas |
@@ -161,26 +192,26 @@ output/
 ```
 📁 Entrada: input
 📁 Salida: output
-Tamaños: 1,2,3,4,5 (todos)
-Calidad: 3 (80%) — buena relación tamaño/calidad
-Formato: 1 (WebP)
+Tamaños: marca 320px, 768px y 1080px   (clásico: 3,5,6)
+Calidad: Calidad Alta (80%)            (clásico: 3)
+Formato: WebP                          (clásico: 1)
 ```
-**Resultado:** 5 versiones por imagen (móvil, tablet, desktop) en formato moderno
+**Resultado:** 3 versiones por imagen (móvil, tablet, desktop) en formato moderno
 
 ### Caso 2: Galería de miniaturas
 ```
-Tamaños: 6 → 300
-Calidad: 5 (45%) — tamaño mínimo
-Formato: 2 (JPEG)
+Tamaños: marca "Personalizado" → 300   (clásico: 9 → 300)
+Calidad: Calidad Media (45%)           (clásico: 5)
+Formato: JPEG                          (clásico: 2)
 ```
 **Resultado:** Miniaturas rápidas de cargar, máxima compatibilidad
 
 ### Caso 3: Procesamiento de CR3 (Canon RAW)
 ```
 📁 Entrada: mi_viaje/
-Tamaños: 1080
-Calidad: 2 (95%) — máxima calidad
-Formato: 1 (WebP)
+Tamaños: marca "Personalizado" → 1080  (clásico: 9 → 1080)
+Calidad: Calidad Máxima (95%)          (clásico: 2)
+Formato: WebP                          (clásico: 1)
 ```
 **Requisito:** `exiftool` instalado y en PATH
 **Nota:** Extrae el JPEG embebido en el CR3 (no revelado RAW completo)
@@ -199,21 +230,21 @@ Formato: 1 (WebP)
 4. Verifica: `exiftool -ver` (debe mostrar la versión)
 5. Si sigue sin funcionar, mueve `exiftool.exe` a `C:\Windows\System32\` (requiere admin)
 
-### ❌ "Error al leer entrada"
-**Problema:** La carpeta de entrada no existe o está vacía.
+### ❌ "La carpeta '...' no existe o no es un directorio"
+**Problema:** La ruta de entrada que indicaste no existe.
 
 **Solución:**
-- Verifica que la ruta sea correcta
-- Asegúrate de que las imágenes estén dentro de la carpeta indicada
+- La aplicación **vuelve a preguntar** automáticamente; escribe una ruta válida o pulsa Enter para usar `input/`
 - Usa rutas completas: `C:\Users\Usuario\Imágenes` en lugar de solo `Imágenes`
+- Asegúrate de que las imágenes estén dentro de la carpeta indicada
 
 ### ❌ "No seleccionaste ningún tamaño válido"
-**Problema:** Las opciones de tamaño que escribiste no son válidas.
+**Problema:** No marcaste/elegiste ningún tamaño válido.
 
 **Solución:**
-- Separa los números con comas: `1,2,3` (no espacios entre comas)
-- Solo ingresa números del 1 al 6
-- Si usas opción 6 (personalizado), escribe números separados por coma: `600,1200,1800`
+- **Modo interactivo:** usa **espacio** para marcar al menos un tamaño antes de pulsar Enter (las flechas solo mueven el cursor, no seleccionan)
+- **Modo clásico:** separa los números con comas: `1,2,3` (sin espacios), usando números del **1 al 9**
+- Si usas la opción **9 (personalizado)**, escribe los px separados por coma: `600,1200,1800`
 
 ### ⚠️ Las imágenes CR3 se saltan
 **Problema:** Tienes archivos CR3 pero se reportan en rojo como error.
@@ -236,11 +267,11 @@ Formato: 1 (WebP)
 
 | Caso | Tamaño | Calidad | Formato |
 |------|--------|---------|---------|
-| Sitio web moderno | 420, 720, 1080 | 80% | WebP |
-| Compatibilidad máxima | 800, 1200 | 85% | JPEG |
-| Redes sociales | 1080, 1440 | 75% | WebP |
-| Impresión web | 2160 | 95% | WebP |
-| Miniaturas | 300 | 50% | JPEG |
+| Sitio web moderno | 320, 768, 1080 | Alta (80%) | WebP |
+| Compatibilidad máxima | 768, 1080 (custom) | Máxima (95%) | JPEG |
+| Redes sociales | 1080, 1440 | Media-Alta (65%) | WebP |
+| Impresión web | 2160 (4K) | Máxima (95%) | WebP |
+| Miniaturas | 300 (custom) | Media (45%) | JPEG |
 
 ---
 
@@ -261,6 +292,12 @@ A: Sí. Soportado en Chrome, Edge, Firefox (moderno), Safari 16+. Para IE o nave
 **P: ¿Dónde veo el progreso?**
 A: Aparece en la consola con emojis: ✅ para éxito, ❌ para errores, ⚠️ para advertencias.
 
+**P: Me salen menús numerados en vez de checkboxes, ¿por qué?**
+A: La selección interactiva (checkboxes/listas) requiere una terminal real. Si ejecutas el programa con la entrada redirigida (tubería, script, automatización) o sin terminal interactiva, se usa automáticamente el menú numérico clásico. Ejecútalo directamente en PowerShell/Terminal para ver los checkboxes.
+
+**P: ¿En modo checkbox por qué no se marca nada con las flechas?**
+A: Las flechas **↑/↓** solo mueven el cursor. Para marcar/desmarcar una opción usa la tecla **espacio**, y **Enter** para confirmar la selección.
+
 ---
 
-**Versión:** 1.0 | **Última actualización:** Mayo 2026
+**Versión:** 1.1 | **Última actualización:** Mayo 2026
