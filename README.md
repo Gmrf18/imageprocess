@@ -1,82 +1,82 @@
-# Optimizador de Imágenes WebP
+# WebP Image Optimizer
 
-Herramienta de línea de comandos escrita en Go que procesa imágenes en lote: las redimensiona a múltiples anchos y las convierte a **WebP** o **JPEG**, manteniendo la proporción original.
+A command-line tool written in Go that batch processes images: resizes them to multiple widths and converts them to **WebP** or **JPEG**, maintaining the original aspect ratio.
 
-## Qué hace
+## What it does
 
-- Lee todas las imágenes de un directorio de entrada
-- Detecta orientación (portrait / landscape)
-- Redimensiona a uno o varios anchos predefinidos usando el filtro Lanczos
-- Exporta en WebP o JPEG con el nivel de calidad elegido
-- Soporta formatos de entrada: `.jpg`, `.jpeg`, `.png`, `.webp`, `.cr3`
-- Para archivos `.cr3` (RAW Canon) extrae el JPEG embebido vía `exiftool`
-- Nombra los archivos de salida como `nombre_orientacion_ancho.ext`
+- Reads all images from an input directory
+- Detects orientation (portrait / landscape)
+- Resizes to one or multiple predefined widths using Lanczos filter
+- Exports to WebP or JPEG with chosen quality level
+- Supports input formats: `.jpg`, `.jpeg`, `.png`, `.webp`, `.cr3`
+- For `.cr3` files (Canon RAW) extracts embedded JPEG via `exiftool`
+- Names output files as `name_orientation_width.ext`
 
-## Flujo de uso
+## Usage flow
 
-Al ejecutar el programa, responde las siguientes preguntas interactivas:
+When running the program, answer the following interactive questions:
 
-### 1. Directorios
-
-```
-📁 Directorio de entrada [default: input]:
-📁 Directorio de salida [default: output]:
-```
-
-Presiona Enter para usar los valores por defecto (`input/` y `output/`).
-
-### 2. Tamaños de salida
+### 1. Directories
 
 ```
-1) 320px  (Móvil S)
-2) 468px  (Móvil L)
+📁 Input directory [default: input]:
+📁 Output directory [default: output]:
+```
+
+Press Enter to use the default values (`input/` and `output/`).
+
+### 2. Output sizes
+
+```
+1) 320px  (Mobile S)
+2) 468px  (Mobile L)
 3) 768px  (Tablet)
 4) 1080px (Full HD)
 5) 1440px (2K)
 6) 2160px (4K)
-7) Personalizado (tamaño en px)
+7) Custom (size in px)
 ```
 
-Puedes elegir uno o varios separados por coma: `1,3,5`  
-Si eliges `7`, introduce los anchos manualmente: `800, 1200`
+You can choose one or multiple separated by comma: `1,3,5`  
+If you choose `7`, enter the widths manually: `800, 1200`
 
-> Si el ancho solicitado supera el de la imagen original, se limita al original para evitar pixelado.
+> If the requested width exceeds the original image width, it is limited to the original to avoid pixelation.
 
-### 3. Calidad
-
-```
-1) Sin pérdida / Pérdida mínima (Lossless)
-2) Calidad Máxima  (95%)
-3) Calidad Alta    (80%) — Predeterminado
-4) Calidad Media-Alta (65%)
-5) Calidad Media   (45%)
-6) Calidad Baja    (25%)
-```
-
-### 4. Formato de salida
+### 3. Quality
 
 ```
-1) WebP  — Predeterminado
+1) Lossless / Minimal loss
+2) Maximum Quality (95%)
+3) High Quality    (80%) — Default
+4) Medium-High Quality (65%)
+5) Medium Quality  (45%)
+6) Low Quality     (25%)
+```
+
+### 4. Output format
+
+```
+1) WebP  — Default
 2) JPEG
 ```
 
-> JPEG no admite modo lossless; si se combinan ambas opciones, la calidad se ajusta a 100.
+> JPEG does not support lossless mode; if both options are combined, quality is adjusted to 100.
 
-### 5. Procesado
+### 5. Processing
 
-El programa recorre el directorio de entrada y por cada imagen genera los archivos solicitados en el directorio de salida.
+The program traverses the input directory and generates the requested files in the output directory for each image.
 
-Ejemplo de archivos generados:
+Example of generated files:
 
 ```
-foto_landscape_768.webp
-foto_landscape_1080.webp
-foto_landscape_1440.webp
+photo_landscape_768.webp
+photo_landscape_1080.webp
+photo_landscape_1440.webp
 ```
 
 ---
 
-## Compilación
+## Compilation
 
 ### Linux / WSL
 
@@ -84,9 +84,9 @@ foto_landscape_1440.webp
 go build -o imageprocess main.go
 ```
 
-### Windows (.exe) desde Linux / WSL
+### Windows (.exe) from Linux / WSL
 
-Requiere el compilador cruzado `mingw-w64`:
+Requires the `mingw-w64` cross-compiler:
 
 ```bash
 CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o imageprocess.exe main.go
@@ -94,10 +94,10 @@ CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o im
 
 ---
 
-## Dependencias
+## Dependencies
 
-| Paquete | Uso |
+| Package | Use |
 |---|---|
-| `github.com/chai2010/webp` | Codificación y decodificación WebP (CGO) |
-| `github.com/disintegration/imaging` | Redimensionado y apertura de imágenes |
-| `exiftool` *(externo)* | Extracción de JPEG embebido en archivos CR3 |
+| `github.com/chai2010/webp` | WebP encoding and decoding (CGO) |
+| `github.com/disintegration/imaging` | Image resizing and opening |
+| `exiftool` *(external)* | Embedded JPEG extraction from CR3 files |
