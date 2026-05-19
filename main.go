@@ -15,6 +15,7 @@ import (
 
 	"github.com/chai2010/webp"
 	"github.com/disintegration/imaging"
+	"github.com/fatih/color"
 )
 
 type TargetSize struct {
@@ -23,30 +24,29 @@ type TargetSize struct {
 	IsPct bool
 }
 
-const (
-	ColorReset  = "\033[0m"
-	ColorCyan   = "\033[36m"
-	ColorYellow = "\033[33m"
-	ColorGreen  = "\033[32m"
-	ColorRed    = "\033[31m"
-	ColorBold   = "\033[1m"
+var (
+	cyan   = color.New(color.FgCyan).SprintFunc()
+	yellow = color.New(color.FgYellow).SprintFunc()
+	green  = color.New(color.FgGreen).SprintFunc()
+	red    = color.New(color.FgRed).SprintFunc()
+	bold   = color.New(color.Bold).SprintFunc()
 )
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Println(ColorCyan + ColorBold + "🚀 Optimizador de Imágenes WebP" + ColorReset)
+	fmt.Println(bold(cyan("🚀 Optimizador de Imágenes WebP")))
 	fmt.Println("-------------------------------")
 
 	// 1. Preguntar directorios
-	fmt.Print(ColorYellow + "📁 Directorio de entrada [default: input]: " + ColorReset)
+	fmt.Print(yellow("📁 Directorio de entrada [default: input]: "))
 	inDir, _ := reader.ReadString('\n')
 	inDir = strings.TrimSpace(inDir)
 	if inDir == "" {
 		inDir = "input"
 	}
 
-	fmt.Print(ColorYellow + "📁 Directorio de salida [default: output]: " + ColorReset)
+	fmt.Print(yellow("📁 Directorio de salida [default: output]: "))
 	outDir, _ := reader.ReadString('\n')
 	outDir = strings.TrimSpace(outDir)
 	if outDir == "" {
@@ -54,8 +54,10 @@ func main() {
 	}
 
 	// 2. Mostrar menú de tamaños
-	fmt.Println(ColorCyan + ColorBold + "\n📐 Selecciona los tamaños deseados (separados por coma, ej: 1,2,3):" + ColorReset)
+	fmt.Println(bold(cyan("\n📐 Selecciona los tamaños deseados (separados por coma, ej: 1,2,3):")))
 	options := []TargetSize{
+		{Name: "240px (Watch/Legacy)", Width: 240, IsPct: false},
+		{Name: "280px (Galaxy Fold cerrado)", Width: 280, IsPct: false},
 		{Name: "320px (Móvil S)", Width: 320, IsPct: false},
 		{Name: "468px (Móvil L)", Width: 468, IsPct: false},
 		{Name: "768px (Tablet)", Width: 768, IsPct: false},
@@ -65,11 +67,11 @@ func main() {
 	}
 
 	for i, opt := range options {
-		fmt.Printf(ColorCyan+"%d) %s\n"+ColorReset, i+1, opt.Name)
+		fmt.Printf("%s%d) %s\n", cyan(""), i+1, opt.Name)
 	}
-	fmt.Println(ColorCyan + "7) Personalizado (tamaño en px)" + ColorReset)
+	fmt.Println(cyan("7) Personalizado (tamaño en px)"))
 
-	fmt.Print(ColorYellow + "\nOpción(es): " + ColorReset)
+	fmt.Print(yellow("\nOpción(es): "))
 	choicesStr, _ := reader.ReadString('\n')
 	choicesStr = strings.TrimSpace(choicesStr)
 
@@ -82,7 +84,7 @@ func main() {
 			continue
 		}
 		if idx == 7 {
-			fmt.Print(ColorYellow + "Introduce los tamaños en px (ej: 800, 1200): " + ColorReset)
+			fmt.Print(yellow("Introduce los tamaños en px (ej: 800, 1200): "))
 			pxStr, _ := reader.ReadString('\n')
 			pxList := strings.Split(strings.TrimSpace(pxStr), ",")
 			for _, p := range pxList {
@@ -101,15 +103,15 @@ func main() {
 	}
 
 	// 3. Menú de calidad
-	fmt.Println(ColorCyan + ColorBold + "\n💎 Selecciona la calidad de salida:" + ColorReset)
-	fmt.Println(ColorCyan + "1) Sin pérdida / Pérdida mínima (Lossless)" + ColorReset)
-	fmt.Println(ColorCyan + "2) Calidad Máxima (95%)" + ColorReset)
-	fmt.Println(ColorCyan + "3) Calidad Alta (80%) [Predeterminado]" + ColorReset)
-	fmt.Println(ColorCyan + "4) Calidad Media-Alta (65%)" + ColorReset)
-	fmt.Println(ColorCyan + "5) Calidad Media (45%)" + ColorReset)
-	fmt.Println(ColorCyan + "6) Calidad Baja / Menor peso (25%)" + ColorReset)
+	fmt.Println(bold(cyan("\n💎 Selecciona la calidad de salida:")))
+	fmt.Println(cyan("1) Sin pérdida / Pérdida mínima (Lossless)"))
+	fmt.Println(cyan("2) Calidad Máxima (95%)"))
+	fmt.Println(cyan("3) Calidad Alta (80%) [Predeterminado]"))
+	fmt.Println(cyan("4) Calidad Media-Alta (65%)"))
+	fmt.Println(cyan("5) Calidad Media (45%)"))
+	fmt.Println(cyan("6) Calidad Baja / Menor peso (25%)"))
 
-	fmt.Print(ColorYellow + "\nOpción (1-6): " + ColorReset)
+	fmt.Print(yellow("\nOpción (1-6): "))
 	qStr, _ := reader.ReadString('\n')
 	qStr = strings.TrimSpace(qStr)
 
@@ -146,11 +148,11 @@ func main() {
 	}
 
 	// 4. Menú de formato de salida
-	fmt.Println(ColorCyan + ColorBold + "\n🗂️  Selecciona el formato de salida:" + ColorReset)
-	fmt.Println(ColorCyan + "1) WebP [Predeterminado]" + ColorReset)
-	fmt.Println(ColorCyan + "2) JPEG" + ColorReset)
+	fmt.Println(bold(cyan("\n🗂️  Selecciona el formato de salida:")))
+	fmt.Println(cyan("1) WebP [Predeterminado]"))
+	fmt.Println(cyan("2) JPEG"))
 
-	fmt.Print(ColorYellow + "\nOpción (1-2): " + ColorReset)
+	fmt.Print(yellow("\nOpción (1-2): "))
 	fStr, _ := reader.ReadString('\n')
 	fStr = strings.TrimSpace(fStr)
 
@@ -160,7 +162,7 @@ func main() {
 	}
 
 	if outputFormat == "jpeg" && lossless {
-		fmt.Println(ColorYellow + "ℹ️  JPEG no admite modo lossless; se usará calidad 100." + ColorReset)
+		fmt.Println(yellow("ℹ️  JPEG no admite modo lossless; se usará calidad 100."))
 		lossless = false
 		quality = 100
 	}
@@ -190,7 +192,7 @@ func main() {
 			src, err = imaging.Open(inputPath)
 		}
 		if err != nil {
-			fmt.Printf(ColorRed+"❌ Error abriendo %s: %v\n"+ColorReset, entry.Name(), err)
+			fmt.Printf("%s Error abriendo %s: %v\n", red("❌"), entry.Name(), err)
 			continue
 		}
 
@@ -201,7 +203,7 @@ func main() {
 			orientation = "landscape"
 		}
 
-		fmt.Printf(ColorCyan+"\n🖼️  Procesando: %s [%s]\n"+ColorReset, entry.Name(), orientation)
+		fmt.Printf("\n%s Procesando: %s [%s]\n", cyan("🖼️ "), entry.Name(), orientation)
 		baseName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 
 		for _, target := range targets {
@@ -217,7 +219,7 @@ func main() {
 			}
 
 			if finalWidth > w {
-				fmt.Printf(ColorYellow+"  ⚠️ El tamaño solicitado (%dpx) es mayor al original. Limitando a %dpx para evitar pixelado.\n"+ColorReset, finalWidth, w)
+				fmt.Printf("%s El tamaño solicitado (%dpx) es mayor al original. Limitando a %dpx para evitar pixelado.\n", yellow("  ⚠️ "), finalWidth, w)
 				finalWidth = w
 			}
 
@@ -237,13 +239,13 @@ func main() {
 
 			err := saveImage(outPath, dst, outputFormat, lossless, quality)
 			if err != nil {
-				fmt.Printf(ColorRed+"  ⚠️ Error guardando %s: %v\n"+ColorReset, outName, err)
+				fmt.Printf("%s Error guardando %s: %v\n", red("  ⚠️ "), outName, err)
 			} else {
-				fmt.Printf(ColorGreen+"  ✅ Generado: %s\n"+ColorReset, outName)
+				fmt.Printf("%s Generado: %s\n", green("  ✅ "), outName)
 			}
 		}
 	}
-	fmt.Println(ColorGreen + ColorBold + "\n✨ ¡Proceso finalizado!" + ColorReset)
+	fmt.Println(bold(green("\n✨ ¡Proceso finalizado!")))
 }
 
 func saveImage(path string, img image.Image, format string, lossless bool, quality float32) error {
